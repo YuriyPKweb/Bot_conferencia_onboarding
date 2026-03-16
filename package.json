@@ -1,0 +1,16 @@
+{
+  "name": "conf-bot",
+  "version": "1.0.0",
+  "description": "Telegram-бот для конференции «Быть предпринимателем» 29 марта 2026",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "telegraf": "^4.16.3",
+    "better-sqlite3": "^11.7.0",
+    "dotenv": "^16.4.7",
+    "node-cron": "^3.0.3"
+  }
+}
