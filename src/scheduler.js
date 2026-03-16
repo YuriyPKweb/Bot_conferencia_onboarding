@@ -34,11 +34,9 @@ function startScheduler(bot) {
 
         // Дожим через 24 часа
         if (hoursPassed >= 24 && !user.reminded_24h) {
-          const seatsLeft = config.TOTAL_SEATS - db.countPaid();
-          const premiumLeft = config.TOTAL_PREMIUM - db.countPaidByTariff('premium');
           await bot.telegram.sendMessage(
             user.user_id,
-            texts.FOLLOWUP_24H(seatsLeft, premiumLeft),
+            texts.FOLLOWUP_24H,
             keyboards.followup24hKeyboard
           );
           db.setReminded24h(user.user_id);
