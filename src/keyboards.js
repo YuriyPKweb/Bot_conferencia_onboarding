@@ -27,6 +27,7 @@ module.exports = {
   tariffKeyboard: Markup.inlineKeyboard([
     [Markup.button.callback('✅ Хочу Standard — 4 990 ₽', 'buy_standard')],
     [Markup.button.callback('✅ Хочу Premium — 6 790 ₽', 'buy_premium')],
+    [Markup.button.url('📢 Канал конференции', config.CHANNEL_URL)],
     [Markup.button.callback('🤔 Есть вопрос', 'ask_question')],
   ]),
 
