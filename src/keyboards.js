@@ -38,6 +38,7 @@ module.exports = {
 
   followup24hKeyboard: Markup.inlineKeyboard([
     [Markup.button.callback('Забронировать', 'show_tariffs')],
+    [Markup.button.url('📢 В канал конференции', config.CHANNEL_URL)],
     [Markup.button.callback('Не напоминай', 'stop_reminders')],
   ]),
 
