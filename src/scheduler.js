@@ -86,7 +86,19 @@ function startScheduler(bot) {
     console.log('[scheduler] Done.');
   });
 
-  return job;
+  // Ежедневный отчёт в 20:00 по Москве (17:00 UTC)
+  const dailyStats = cron.schedule('0 17 * * *', async () => {
+    if (!config.STATS_CHAT_ID) return;
+    const { formatStats } = require('./handlers/stats');
+    try {
+      await bot.telegram.sendMessage(config.STATS_CHAT_ID, formatStats());
+      console.log('[scheduler] Daily stats sent.');
+    } catch (err) {
+      console.error('[scheduler] Failed to send daily stats:', err.message);
+    }
+  });
+
+  return { followupJob: job, dailyStatsJob: dailyStats };
 }
 
 module.exports = { startScheduler };

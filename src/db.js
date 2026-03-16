@@ -21,6 +21,7 @@ db.exec(`
     source TEXT,
     created_at TEXT,
     last_action_at TEXT,
+    program_viewed_at TEXT,
     tariff_shown_at TEXT,
     reminded_2h INTEGER DEFAULT 0,
     reminded_24h INTEGER DEFAULT 0,
@@ -30,6 +31,14 @@ db.exec(`
     blocked_bot INTEGER DEFAULT 0
   )
 `);
+
+// Миграции — безопасное добавление новых колонок
+const migrations = [
+  'ALTER TABLE users ADD COLUMN program_viewed_at TEXT',
+];
+for (const sql of migrations) {
+  try { db.exec(sql); } catch (e) { /* колонка уже существует */ }
+}
 
 const stmts = {
   upsert: db.prepare(`
@@ -49,6 +58,9 @@ const stmts = {
   `),
   updateState: db.prepare(`
     UPDATE users SET state = ?, last_action_at = datetime('now') WHERE user_id = ?
+  `),
+  setProgramViewedAt: db.prepare(`
+    UPDATE users SET program_viewed_at = datetime('now'), last_action_at = datetime('now') WHERE user_id = ?
   `),
   setTariffShownAt: db.prepare(`
     UPDATE users SET tariff_shown_at = datetime('now'), last_action_at = datetime('now') WHERE user_id = ?
@@ -91,6 +103,51 @@ const stmts = {
   countPaidByTariff: db.prepare(`
     SELECT COUNT(*) as count FROM users WHERE paid = 1 AND tariff = ?
   `),
+
+  // --- Статистика ---
+  statsTotal: db.prepare(`SELECT COUNT(*) as count FROM users`),
+  statsSegmented: db.prepare(`SELECT COUNT(*) as count FROM users WHERE segment IS NOT NULL`),
+  statsBySegment: db.prepare(`
+    SELECT segment, COUNT(*) as count FROM users
+    WHERE segment IS NOT NULL GROUP BY segment ORDER BY count DESC
+  `),
+  statsProgramViewed: db.prepare(`SELECT COUNT(*) as count FROM users WHERE program_viewed_at IS NOT NULL`),
+  statsTariffViewed: db.prepare(`SELECT COUNT(*) as count FROM users WHERE tariff_shown_at IS NOT NULL`),
+  statsTariffChosen: db.prepare(`SELECT COUNT(*) as count FROM users WHERE tariff IS NOT NULL`),
+  statsTariffChosenByType: db.prepare(`
+    SELECT tariff, COUNT(*) as count FROM users
+    WHERE tariff IS NOT NULL GROUP BY tariff
+  `),
+  statsPaidByTariff: db.prepare(`
+    SELECT tariff, COUNT(*) as count FROM users
+    WHERE paid = 1 GROUP BY tariff
+  `),
+  statsBlocked: db.prepare(`SELECT COUNT(*) as count FROM users WHERE blocked_bot = 1`),
+  statsDoNotRemind: db.prepare(`SELECT COUNT(*) as count FROM users WHERE do_not_remind = 1`),
+  statsTodayNew: db.prepare(`
+    SELECT COUNT(*) as count FROM users WHERE date(created_at) = date('now')
+  `),
+  stuckAtTariffs: db.prepare(`
+    SELECT user_id, username, first_name, segment, tariff_shown_at, last_action_at
+    FROM users
+    WHERE tariff_shown_at IS NOT NULL AND tariff IS NULL AND paid = 0
+      AND blocked_bot = 0 AND do_not_remind = 0
+    ORDER BY tariff_shown_at ASC
+  `),
+  stuckAtSegment: db.prepare(`
+    SELECT user_id, username, first_name, segment, last_action_at
+    FROM users
+    WHERE segment IS NOT NULL AND program_viewed_at IS NULL AND tariff_shown_at IS NULL
+      AND paid = 0 AND blocked_bot = 0 AND do_not_remind = 0
+    ORDER BY last_action_at ASC
+  `),
+  stuckAtTariffChosen: db.prepare(`
+    SELECT user_id, username, first_name, segment, tariff, last_action_at
+    FROM users
+    WHERE tariff IS NOT NULL AND paid = 0
+      AND blocked_bot = 0 AND do_not_remind = 0
+    ORDER BY last_action_at ASC
+  `),
 };
 
 module.exports = {
@@ -105,6 +162,9 @@ module.exports = {
   },
   updateState(userId, state) {
     stmts.updateState.run(state, userId);
+  },
+  setProgramViewedAt(userId) {
+    stmts.setProgramViewedAt.run(userId);
   },
   setTariffShownAt(userId) {
     stmts.setTariffShownAt.run(userId);
@@ -144,6 +204,29 @@ module.exports = {
   },
   countPaidByTariff(tariff) {
     return stmts.countPaidByTariff.get(tariff).count;
+  },
+  // --- Статистика ---
+  getStats() {
+    const total = stmts.statsTotal.get().count;
+    const segmented = stmts.statsSegmented.get().count;
+    const bySegment = stmts.statsBySegment.all();
+    const programViewed = stmts.statsProgramViewed.get().count;
+    const tariffViewed = stmts.statsTariffViewed.get().count;
+    const tariffChosen = stmts.statsTariffChosen.get().count;
+    const tariffChosenByType = stmts.statsTariffChosenByType.all();
+    const paid = stmts.countPaid.get().count;
+    const paidByTariff = stmts.statsPaidByTariff.all();
+    const blocked = stmts.statsBlocked.get().count;
+    const doNotRemind = stmts.statsDoNotRemind.get().count;
+    const todayNew = stmts.statsTodayNew.get().count;
+    return { total, segmented, bySegment, programViewed, tariffViewed, tariffChosen, tariffChosenByType, paid, paidByTariff, blocked, doNotRemind, todayNew };
+  },
+  getStuckUsers() {
+    return {
+      atSegment: stmts.stuckAtSegment.all(),
+      atTariffs: stmts.stuckAtTariffs.all(),
+      atTariffChosen: stmts.stuckAtTariffChosen.all(),
+    };
   },
   close() {
     db.close();

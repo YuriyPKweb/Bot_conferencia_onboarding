@@ -14,6 +14,7 @@ const { handlePaymentMessage } = require('./handlers/checkout');
 const objectionsHandler = require('./handlers/objections');
 const questionHandler = require('./handlers/question');
 const { handleQuestionMessage } = require('./handlers/question');
+const statsHandler = require('./handlers/stats');
 
 if (!config.BOT_TOKEN) {
   console.error('BOT_TOKEN not set in .env');
@@ -30,6 +31,7 @@ tariffsHandler(bot);
 checkoutHandler(bot);
 objectionsHandler(bot);
 questionHandler(bot);
+statsHandler(bot);
 
 // Обработка текстовых сообщений — с приоритетом по state
 bot.on('text', async (ctx) => {
@@ -54,12 +56,13 @@ bot.on('photo', async (ctx) => {
 });
 
 // Запуск scheduler
-const cronJob = startScheduler(bot);
+const { followupJob, dailyStatsJob } = startScheduler(bot);
 
 // Graceful shutdown
 const shutdown = (signal) => {
   console.log(`\n[${signal}] Shutting down...`);
-  cronJob.stop();
+  followupJob.stop();
+  dailyStatsJob.stop();
   bot.stop(signal);
   db.close();
   process.exit(0);
