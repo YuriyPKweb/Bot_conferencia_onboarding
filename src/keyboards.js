@@ -49,6 +49,14 @@ module.exports = {
     [Markup.button.callback('Ладно, бронирую', 'obj_book')],
   ]),
 
+  checkoutStandardKeyboard: Markup.inlineKeyboard([
+    [Markup.button.url('💳 Перейти к оплате — 4 990 ₽', config.PAYMENT_URL_STANDARD)],
+  ]),
+
+  checkoutPremiumKeyboard: Markup.inlineKeyboard([
+    [Markup.button.url('💳 Перейти к оплате — 6 790 ₽', config.PAYMENT_URL_PREMIUM)],
+  ]),
+
   adminConfirmKeyboard(userId) {
     return Markup.inlineKeyboard([
       [Markup.button.callback('✅ Подтвердить оплату', `confirm_payment_${userId}`)],

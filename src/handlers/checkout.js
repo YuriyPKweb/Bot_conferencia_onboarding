@@ -8,14 +8,14 @@ module.exports = (bot) => {
   bot.action('buy_standard', (ctx) => {
     db.updateTariff(ctx.from.id, 'standard');
     ctx.answerCbQuery();
-    ctx.reply(texts.CHECKOUT_STANDARD);
+    ctx.reply(texts.CHECKOUT_STANDARD, keyboards.checkoutStandardKeyboard);
   });
 
   // Выбор тарифа Premium
   bot.action('buy_premium', (ctx) => {
     db.updateTariff(ctx.from.id, 'premium');
     ctx.answerCbQuery();
-    ctx.reply(texts.CHECKOUT_PREMIUM);
+    ctx.reply(texts.CHECKOUT_PREMIUM, keyboards.checkoutPremiumKeyboard);
   });
 
   // Подтверждение оплаты админом
